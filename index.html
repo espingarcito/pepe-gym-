@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Pepe Gym">
+<meta name="theme-color" content="#111827">
+<title>Pepe Gym</title>
+<style>
+:root{--bg:#f3f4f6;--card:#fff;--text:#111827;--muted:#6b7280;--border:#d1d5db;--accent:#111827;--good:#166534;--warn:#92400e;--bad:#991b1b}
+*{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--text)}
+.app{max-width:760px;margin:auto;padding:14px 14px 90px} header{margin-bottom:14px} h1{font-size:1.6rem;margin:0}.sub{color:var(--muted);font-size:.9rem}
+.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:14px;margin-bottom:12px}
+.days{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}button,select,input{font:inherit}
+button{min-height:44px;border-radius:12px;border:1px solid var(--border);background:#fff;padding:9px 12px;font-weight:700}
+button.active,.primary{background:var(--accent);color:#fff}.exercise-title{font-weight:800}.goal,.small{color:var(--muted);font-size:.82rem}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:10px}
+.field label{display:block;font-size:.76rem;color:var(--muted);margin-bottom:4px}
+input,select{width:100%;min-height:44px;border:1px solid var(--border);border-radius:10px;padding:9px 10px;background:white;color:var(--text)}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}.summary{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+.pill{text-align:center;border:1px solid var(--border);border-radius:12px;padding:10px;background:#fff}.pill b{font-size:1.25rem;display:block}
+.good{color:var(--good)}.warn{color:var(--warn)}.bad{color:var(--bad)}
+.hidden{display:none}.row3{display:grid;grid-template-columns:1.25fr .85fr .75fr;gap:8px}
+.history-item{border-top:1px solid var(--border);padding:10px 0}.history-item:first-child{border-top:none}
+nav{position:fixed;left:0;right:0;bottom:0;background:rgba(255,255,255,.97);border-top:1px solid var(--border);padding:8px 10px calc(8px + env(safe-area-inset-bottom));display:flex;gap:8px;justify-content:center}
+nav button{flex:1;max-width:250px}
+@media(min-width:640px){.grid{grid-template-columns:repeat(5,minmax(0,1fr))}}
+</style>
+</head>
+<body>
+<div class="app">
+<header><h1>Pepe Gym</h1><div class="sub">5 días · fuerza + cardio · control de progresión</div></header>
+
+<section id="workout">
+<div class="card">
+<div class="row3">
+<div class="field"><label>Fecha</label><input id="date" type="date"></div>
+<div class="field"><label>Peso corporal (lb)</label><input id="bodyWeight" type="number" step="0.1" inputmode="decimal"></div>
+<div class="field"><label>Cardio (min)</label><input id="cardioMin" type="number" value="20" inputmode="numeric"></div>
+</div>
+<div class="field" style="margin-top:8px"><label>Cardio / nivel</label><input id="cardioNote" placeholder="Ej. cinta 8% · 3.2 mph"></div>
+</div>
+
+<div class="card">
+<div class="days">
+<button class="day active" data-day="1">D1</button><button class="day" data-day="2">D2</button><button class="day" data-day="3">D3</button><button class="day" data-day="4">D4</button><button class="day" data-day="5">D5</button>
+</div>
+<div id="dayTitle" style="margin-top:10px;font-weight:800"></div>
+</div>
+
+<div id="exerciseList"></div>
+
+<div class="card">
+<div style="font-weight:800;margin-bottom:8px">Calidad de la sesión</div>
+<label><input id="technique" type="checkbox" style="width:auto;min-height:auto"> Técnica correcta</label><br>
+<label><input id="painfree" type="checkbox" style="width:auto;min-height:auto"> Sin dolor articular</label>
+</div>
+
+<div class="actions"><button id="evaluate" class="primary">Evaluar</button><button id="save">Guardar sesión</button></div>
+<div id="result" class="card hidden"></div>
+<div class="small" style="text-align:center;margin-top:8px">Los datos se guardan en Safari en este iPhone.</div>
+</section>
+
+<section id="history" class="hidden">
+<div class="card"><b>Historial</b><div class="small">Últimas sesiones guardadas.</div></div>
+<div id="historyList" class="card"></div>
+<button id="clearHistory">Borrar historial</button>
+</section>
+</div>
+
+<nav><button id="tabWorkout" class="active">Entreno</button><button id="tabHistory">Historial</button></nav>
+
+<script>
+const plans={
+1:{title:'Pecho + tríceps',ex:[['Press inclinado mancuernas',8,12,4],['Press pecho máquina',10,12,3],['Cable crossover',12,15,3],['Tríceps pushdown',10,15,3],['Extensión tríceps sobre cabeza',10,12,3],['Plancha',40,60,3]]},
+2:{title:'Espalda + bíceps',ex:[['Lat pulldown',8,12,4],['Remo sentado',10,12,3],['Remo pecho apoyado',10,12,3],['Face pull',12,15,3],['Curl EZ',8,12,3],['Curl martillo',10,12,3]]},
+3:{title:'Piernas + abdomen',ex:[['Leg press',10,12,4],['Goblet squat',10,12,3],['Leg extension',10,15,3],['Hamstring curl',10,15,3],['Calf raises',12,15,3],['Cable crunch',12,15,3]]},
+4:{title:'Hombros + brazos',ex:[['Shoulder press',8,12,3],['Elevaciones laterales',12,15,4],['Rear delt fly',12,15,3],['Curl inclinado',10,12,3],['Cable curl',10,12,3],['Tríceps pushdown',10,12,3]]},
+5:{title:'Pecho + espalda + core',ex:[['Press inclinado',10,12,3],['Cable crossover',12,15,3],['Lat pulldown',10,12,3],['Remo sentado',10,12,3],['Pallof press',10,12,3],['Hanging knee raise',10,15,3]]}
+};
+let day=1;
+const $=s=>document.querySelector(s), $$=s=>document.querySelectorAll(s);
+$('#date').value=new Date().toISOString().slice(0,10);
+function key(){return 'draft-'+$('#date').value+'-d'+day}
+function draft(){try{return JSON.parse(localStorage.getItem(key()))||{}}catch{return{}}}
+function set(name,val){const d=draft();d[name]=val;localStorage.setItem(key(),JSON.stringify(d))}
+function loadHeader(){const d=draft();$('#bodyWeight').value=d.bodyWeight||'';$('#cardioMin').value=d.cardioMin??20;$('#cardioNote').value=d.cardioNote||'';$('#technique').checked=!!d.technique;$('#painfree').checked=!!d.painfree}
+['bodyWeight','cardioMin','cardioNote'].forEach(id=>$('#'+id).addEventListener('input',e=>set(id,e.target.value)));
+['technique','painfree'].forEach(id=>$('#'+id).addEventListener('change',e=>set(id,e.target.checked)));
+$('#date').addEventListener('change',()=>{loadHeader();render()});
+function render(){
+$('#dayTitle').textContent='Día '+day+' · '+plans[day].title;
+$$('.day').forEach(b=>b.classList.toggle('active',Number(b.dataset.day)===day));
+const list=$('#exerciseList');list.innerHTML='';const d=draft();
+plans[day].ex.forEach((ex,i)=>{const [name,min,max,sets]=ex;const c=document.createElement('div');c.className='card';
+c.innerHTML='<div class="exercise-title">'+name+'</div><div class="goal">'+sets+' series · '+min+'–'+max+' reps</div>';
+const g=document.createElement('div');g.className='grid';
+const w=document.createElement('div');w.className='field';w.innerHTML='<label>Peso (lb)</label>';
+const wi=document.createElement('input');wi.type='number';wi.step='0.5';wi.inputMode='decimal';wi.value=d['e'+i+'w']||'';wi.addEventListener('input',()=>set('e'+i+'w',wi.value));w.appendChild(wi);g.appendChild(w);
+for(let s=1;s<=sets;s++){const f=document.createElement('div');f.className='field';f.innerHTML='<label>Serie '+s+'</label>';const inp=document.createElement('input');inp.type='number';inp.inputMode='numeric';inp.value=d['e'+i+'s'+s]||'';inp.addEventListener('input',()=>set('e'+i+'s'+s,inp.value));f.appendChild(inp);g.appendChild(f)}
+c.appendChild(g);const n=document.createElement('div');n.className='field';n.style.marginTop='8px';n.innerHTML='<label>Notas</label>';const ni=document.createElement('input');ni.value=d['e'+i+'n']||'';ni.placeholder='Ej. última serie muy dura';ni.addEventListener('input',()=>set('e'+i+'n',ni.value));n.appendChild(ni);c.appendChild(n);list.appendChild(c)})
+}
+$$('.day').forEach(b=>b.addEventListener('click',()=>{day=Number(b.dataset.day);loadHeader();render();$('#result').classList.add('hidden')}));
+$('#evaluate').addEventListener('click',()=>{const d=draft();let up=0,keep=0,down=0,details=[];plans[day].ex.forEach((ex,i)=>{const [name,min,max,sets]=ex;const reps=[];for(let s=1;s<=sets;s++){const v=Number(d['e'+i+'s'+s]);if(v>0)reps.push(v)}if(!reps.length)return;let a='MANTENER';if(!d.technique||!d.painfree||reps.some(v=>v<min))a='BAJAR';else if(reps.length===sets&&reps.every(v=>v>=max))a='SUBIR';if(a==='SUBIR')up++;else if(a==='BAJAR')down++;else keep++;details.push(name+': '+a)});
+const r=$('#result');r.classList.remove('hidden');if(!details.length){r.innerHTML='<b>Añade tus repeticiones primero.</b>';return}r.innerHTML='<b>Resumen</b><div class="summary"><div class="pill good"><b>'+up+'</b>SUBIR</div><div class="pill warn"><b>'+keep+'</b>MANTENER</div><div class="pill bad"><b>'+down+'</b>BAJAR</div></div><div class="small" style="margin-top:10px">'+details.join('<br>')+'</div>'});
+function hist(){try{return JSON.parse(localStorage.getItem('pepeGymHistory'))||[]}catch{return[]}}
+function saveHist(h){localStorage.setItem('pepeGymHistory',JSON.stringify(h))}
+$('#save').addEventListener('click',()=>{const d=draft();d.date=$('#date').value;d.day=day;d.title=plans[day].title;const h=hist();h.unshift(d);saveHist(h.slice(0,100));alert('Sesión guardada')});
+function renderHist(){const h=hist(),box=$('#historyList');box.innerHTML='';if(!h.length){box.innerHTML='<div class="small">Todavía no hay sesiones guardadas.</div>';return}h.forEach(s=>{const div=document.createElement('div');div.className='history-item';div.innerHTML='<b>'+s.date+' · Día '+s.day+' · '+s.title+'</b><div class="small">Peso corporal: '+(s.bodyWeight||'—')+' lb · Cardio: '+(s.cardioMin||'—')+' min</div>';box.appendChild(div)})}
+$('#clearHistory').addEventListener('click',()=>{if(confirm('¿Borrar todo el historial?')){saveHist([]);renderHist()}});
+$('#tabWorkout').addEventListener('click',()=>{$('#workout').classList.remove('hidden');$('#history').classList.add('hidden');$('#tabWorkout').classList.add('active');$('#tabHistory').classList.remove('active')});
+$('#tabHistory').addEventListener('click',()=>{$('#workout').classList.add('hidden');$('#history').classList.remove('hidden');$('#tabHistory').classList.add('active');$('#tabWorkout').classList.remove('active');renderHist()});
+loadHeader();render();
+</script>
+</body>
+</html>
